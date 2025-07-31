@@ -2,6 +2,6 @@ from django.shortcuts import render
 from django.http import HttpResponse
 
 def home(request):
-    return render(request, 'home.html', {'name': 'sexo'})
+    return render(request, 'home.html', {'name': 'David Ballesteros Jaimes'})
 
 # Create your views here.
