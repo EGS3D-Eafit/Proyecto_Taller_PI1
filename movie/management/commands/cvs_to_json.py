@@ -1,7 +1,7 @@
 import pandas as pd
 import json
 
-df = pd.read_csv('movies_initial.csv')
+df = pd.read_csv('../../../updated_movie_descriptions.csv')
 
 df.to_json('movies.json', orient='records')
 
