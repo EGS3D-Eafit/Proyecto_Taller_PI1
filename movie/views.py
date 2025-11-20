@@ -3,6 +3,9 @@ import matplotlib.pyplot as plt
 import matplotlib
 import io
 import urllib, base64
+from openai import OpenAI
+from dotenv import load_dotenv
+import os
 from django.http import HttpResponse
 
 from .models import Movie
@@ -11,9 +14,48 @@ def home(request):
     searchTerm = request.GET.get('searchMovie')
     if searchTerm:
         movies = Movie.objects.filter(title__icontains=searchTerm)
+        if not movies:
+            load_dotenv('openAI.env')
+            client = OpenAI(
+                api_key= os.environ.get('openai_apikey'),
+            )
+            movies = gen_recomendations(searchTerm, client)
     else:
         movies = Movie.objects.all()
     return render(request, 'home.html', {'searchTerm': searchTerm, 'movies': movies})
+
+def gen_recomendations(prompt, client):
+    prompt = f"Dame las películas que cumplan con el criterio '{prompt}' en la siguiente lista (usa el mismo formato):\n"
+    movies = Movie.objects.all()
+    for movie in movies:
+        prompt += f"<Titulo>: {movie.title}\n<Descripcion>: {movie.description}\n,\n"
+
+    # Llamada al modelo GPT
+    response = client.responses.create(
+        model="gpt-4.1-mini",
+        input=prompt,
+        temperature=0.7
+    )
+
+    print(response.output_text)
+    response_text = response.output_text
+
+    # Parsear respuesta
+    movies = []
+    blocks = response_text.split(",")
+    for block in blocks:
+        if "<Titulo>:" in block:
+            try:
+                titulo = block.split("<Titulo>:")[1].split("\n")[0].strip()
+                # Buscar en la BD
+                qs = Movie.objects.filter(title__icontains=titulo)
+                if qs.exists():
+                    movies.append(qs.first())
+            except:
+                print(block);
+
+    return movies
+
 
 def about(request):
     return render(request, 'about.html', {'name': 'waos'})
